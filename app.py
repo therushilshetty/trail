@@ -1,75 +1,145 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 from sympy import symbols, cos, sin, rad, solve, simplify
 import os
 
-# --- 1. THEME SETTINGS ---
-st.set_page_config(page_title="🔱 Statics King", layout="wide")
+# --- 1. LUXURY INTERFACE (CSS) ---
+st.set_page_config(page_title="Statics Solver", layout="wide")
+
 st.markdown("""
     <style>
-    .stApp { background: #050505; color: #00f2ff; font-family: 'Courier New', Courier, monospace; }
-    .result-card { background: rgba(0, 242, 255, 0.1); border: 2px solid #00f2ff; padding: 20px; border-radius: 15px; }
+    /* Dark professional canvas */
+    .stApp {
+        background-color: #0a0a0c;
+        color: #e0e0e0;
+        font-family: 'Inter', sans-serif;
+    }
+    /* Sleek container panels */
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(0, 242, 255, 0.3);
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        margin-bottom: 25px;
+    }
+    .main-header {
+        font-size: 48px;
+        text-align: center;
+        color: #ffffff;
+        font-weight: 700;
+        letter-spacing: -1px;
+        margin-bottom: 40px;
+        background: -webkit-linear-gradient(#fff, #00f2ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    /* Sidebar customization */
+    section[data-testid="stSidebar"] {
+        background-color: #0e0e11 !important;
+        border-right: 1px solid #333;
+    }
+    .stTextInput>div>div>input {
+        color: #00f2ff !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 2. VIDEO HANDLER (FIXES THE RED BOX ERROR) ---
-video_filename = "rayquaza-flying-in-the-dark-sky.3840x2160.mp4"
+st.markdown('<p class="main-header">STATICS ANALYTICS ENGINE</p>', unsafe_allow_html=True)
 
-# Safety check: Shows an info box instead of a crash if the video is missing
-if os.path.exists(video_filename):
-    st.video(video_filename)
-else:
-    st.info(f"📽️ Video '{video_filename}' not detected on GitHub. Upload it to remove this message.")
+# --- 2. UNIVERSAL INPUT ENGINE ---
+st.sidebar.header("🕹️ SYSTEM PARAMETERS")
 
-st.markdown('<h1 style="text-align:center;">🔱 SUPREME STATICS SOLVER 🔱</h1>', unsafe_allow_html=True)
+# Toggle for Textbook Mode
+use_defaults = st.sidebar.checkbox("✅ Apply Textbook Defaults", value=True)
 
-# --- 3. SYMBOLIC INPUT ENGINE (FIXES THE TYPEERROR) ---
-st.sidebar.header("🕹️ CONTROL PANEL")
-
-def safe_input(label, default):
-    val = st.sidebar.text_input(f"💎 {label}", default)
+def pro_input(label, default_val):
+    """Processes anything: Numbers, Symbols, or Alphabets."""
+    val = default_val if use_defaults else ""
+    user_val = st.sidebar.text_input(f"💎 {label}", value=val)
+    if not user_val:
+        return symbols("var")
     try:
-        return float(val) # If it's a number, use it
+        return float(user_val)
     except ValueError:
-        # If it's a letter (m, g, a), make it a math symbol so it doesn't crash
-        return symbols("".join(filter(str.isalnum, str(val))) or "var")
+        # Converts non-numeric strings into math symbols (e.g., 'm', 'Force')
+        clean_name = "".join(filter(str.isalnum, str(user_val))) or "var"
+        return symbols(clean_name)
 
-M = safe_input("Mass of Load", "85")
-Dg = safe_input("Dist G to B (horiz)", "200")
-Dx = safe_input("Dist A to B (horiz)", "1125")
-Dy = safe_input("Height of A (vert)", "650")
+# Dynamic Inputs
+M  = pro_input("Mass (m)", "85")
+Dg = pro_input("Distance G-B (dg)", "200")
+Dx = pro_input("Distance A-B (dx)", "1125")
+Dy = pro_input("Vertical Height A (dy)", "650")
 
-# Your verified 80° logic for the 167.6 N result
-alpha = rad(80) 
+st.sidebar.subheader("📐 GEOMETRY")
+angle_val = st.sidebar.slider("Applied Force Angle (α)", 0, 90, 80)
 
-# --- 4. MATH ENGINE ---
+# --- 3. PHYSICS CORE (SYMBOLIC) ---
 F = symbols('F')
-g_constant = 9.81
+g_const = 9.81
+alpha_rad = rad(angle_val)
 
-# Moment Equation about B
-moment_eq = (F * cos(alpha) * Dy) - (F * sin(alpha) * Dx) + (M * g_constant * Dg)
+# Sum of Moments about B = 0
+# Eq: (F*cos(α)*dy) - (F*sin(α)*dx) + (m*g*dg) = 0
+moment_eq = (F * cos(alpha_rad) * Dy) - (F * sin(alpha_rad) * Dx) + (M * g_const * Dg)
 
 sol = solve(moment_eq, F)
 
-# Display Logic
+# Logic to handle both numeric and symbolic results
 if sol:
     if not hasattr(sol[0], 'free_symbols'):
-        ans = f"{round(float(sol[0]), 1)} N"
+        final_ans = f"{round(float(sol[0]), 2)} N"
     else:
-        ans = str(simplify(sol[0]))
+        final_ans = simplify(sol[0])
 else:
-    ans = "No Solution"
+    final_ans = "Solver Error"
 
-# --- 5. OUTPUT ---
-st.markdown(f'<div class="result-card"><h2>👑 Calculated Force: {ans}</h2></div>', unsafe_allow_html=True)
+# --- 4. PROFESSIONAL DISPLAY ---
+col1, col2 = st.columns([1, 1.2])
 
-# --- 6. TACTICAL FBD ---
-fig, ax = plt.subplots()
-fig.patch.set_facecolor('#050505')
-ax.set_facecolor('#050505')
-plt.plot([-1125, 0], [650, 0], color='#00f2ff', lw=5) # Chassis
-plt.text(-1125, 650, "🔥 (F)", color="orange", fontsize=12) # Charmander/Force
-plt.text(-200, 300, "🌿 (W)", color="green", fontsize=12) # Bulbasaur/Weight
-plt.text(0, 0, "💧 (R)", color="cyan", fontsize=12) # Squirtle/Reaction
-plt.axis('off')
-st.pyplot(fig)
+with col1:
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.markdown("### 🏷️ COMPUTED SOLUTION")
+    st.markdown(f"<h1 style='color:#00f2ff; margin:0;'>{final_ans}</h1>", unsafe_allow_html=True)
+    st.markdown("---")
+    st.markdown("### 📝 MATHEMATICAL PROOF")
+    st.latex(fr"\sum M_B = 0 \implies (F_x \cdot d_y) - (F_y \cdot d_x) + (W \cdot d_g) = 0")
+    st.write("Equilibrium is established by balancing the moments generated by the applied force and the load weight about the pivot point.")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col2:
+    st.markdown('<div class="glass-panel">', unsafe_allow_html=True)
+    st.subheader("📐 TACTICAL FREE BODY DIAGRAM")
+    
+    fig, ax = plt.subplots(figsize=(8, 6))
+    fig.patch.set_facecolor('none')
+    ax.set_facecolor('none')
+
+    # Draw Chassis Line
+    plt.plot([-1125, 0], [650, 0], color='#00f2ff', lw=4, alpha=0.8, zorder=1)
+    plt.axhline(0, color='white', alpha=0.1, ls='-')
+
+    # Force Tip Overlay (Pokemon Heads)
+    def add_icon(path, x, y):
+        if os.path.exists(path):
+            img = mpimg.imread(path)
+            ax.imshow(img, extent=[x-100, x+100, y-100, y+100], zorder=10)
+
+    # Placing icons at A (Handle), G (Center of Gravity), and B (Pivot)
+    add_icon('charmander.jpg', -1125, 650)
+    add_icon('bulbasaur.jpg', -200, 200)
+    add_icon('squirtle.jpg', 0, 0)
+
+    # Force Direction Vector (F)
+    plt.quiver(-1125, 650, cos(float(alpha_rad)), sin(float(alpha_rad)), 
+               color='#00f2ff', scale=5, width=0.012, zorder=5)
+
+    plt.xlim(-1400, 300)
+    plt.ylim(-200, 900)
+    plt.axis('off')
+    st.pyplot(fig)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+st.markdown("<p style='text-align:center; color:#555;'>Statics Precision Engine | Unified Variable Solver | Academic Edition</p>", unsafe_allow_html=True)
