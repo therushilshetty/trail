@@ -2,4 +2,3 @@ streamlit
 sympy
 matplotlib
 numpy
-base64
